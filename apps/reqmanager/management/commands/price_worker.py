@@ -71,4 +71,4 @@ class Command(BaseCommand):
             print("Prices updated at: ",timezone.now())
 
 
-            time.sleep(10)
+            time.sleep(3600)
