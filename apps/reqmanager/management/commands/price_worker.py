@@ -45,29 +45,29 @@ class Command(BaseCommand):
                             timestamp=dt
                             )
                         
+                else:
+                    params = {"symbol":symbol_name}
+                    rep = requests.get(url=price_url,params=params)
+                    data = rep.json()
+                    try:
+                        price_float = float(data["price"])
+                        price = Decimal(str(price_float))
 
-                params = {"symbol":symbol_name}
-                rep = requests.get(url=price_url,params=params)
-                data = rep.json()
-                try:
-                    price_float = float(data["price"])
-                    price = Decimal(str(price_float))
+                        
+                    except (ValueError, TypeError, InvalidOperation) as e:
+                        print(f"Invalid price for {model}: {data['price']} — {e}")
+                        continue  
+
+
+                    model.objects.create(price=Decimal(str(price)),timestamp=timezone.now())
 
                     
-                except (ValueError, TypeError, InvalidOperation) as e:
-                    print(f"Invalid price for {model}: {data['price']} — {e}")
-                    continue  
 
+                    all_points = model.objects.filter().order_by("-timestamp")
 
-                model.objects.create(price=Decimal(str(price)),timestamp=timezone.now())
-
-                
-
-                all_points = model.objects.filter().order_by("-timestamp")
-
-                for old in points[24:]:
-                    old.delete() 
-                        
+                    for old in points[24:]:
+                        old.delete() 
+                            
             print("Prices updated at: ",timezone.now())
 
 

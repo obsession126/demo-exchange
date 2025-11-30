@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
     'apps.reqmanager',
     'apps.users',
+    'apps.countmanager',
 ]
 
 MIDDLEWARE = [
