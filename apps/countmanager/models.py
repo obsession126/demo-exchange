@@ -15,18 +15,18 @@ class Account(models.Model):
 
 
 class ETHBalance(models.Model):
-    user = models.Model(CustomUser,on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE)
     balance = models.DecimalField(max_digits=12,decimal_places=10,default=0)
     is_active = models.BooleanField(default=True)
 
 
 class BTCBalance(models.Model):
-    user = models.Model(CustomUser,on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE)
     balance = models.DecimalField(max_digits=12,decimal_places=10,default=0)
     is_active = models.BooleanField(default=True)
 
 class BNBBalance(models.Model):
-    user = models.Model(CustomUser,on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser,on_delete=models.CASCADE)
     balance = models.DecimalField(max_digits=12,decimal_places=10,default=0)
     is_active = models.BooleanField(default=True)
 

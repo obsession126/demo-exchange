@@ -83,7 +83,7 @@ def transfer(request):
 
     Transaction.objects.create(
         account=from_acc,
-        to_account=to_acc,
+        to_accounts=to_acc,
         amount=amount,
         type="TRANSFER",
         description=f"Transactions to {to_acc.id}"
@@ -107,48 +107,106 @@ def bye_action(request):
     valute = ser.validated_data["valute"]
 
     account = request.user.account
-    SYMBOLS = [
-            ("BTCUSDT", BTCBalance),
-            ("ETHUSDT", ETHBalance), 
-            ("BNBUSDT", BNBBalance)
-        ]
+    SYMBOLS = {
+    "BTCUSDT": BTCBalance,
+    "ETHUSDT": ETHBalance,
+    "BNBUSDT": BNBBalance
+        }
+
+    if valute not in SYMBOLS:
+        return Response({"error": "Unknown currency"}, status=400)
+    
+    model = SYMBOLS[valute]
 
 
-    for name,model in SYMBOLS:
-        if valute == name:
-            slot = model.objects.get(user=account)
-            if slot.is_active:
-                if account.balance < amount:
-                    return Response({"error":"You dont have money for this transaction!!!"},status=400)
+    slot, _ = model.objects.get_or_create(user=account)
+    if slot.is_active:
+        if account.balance < amount:
+            return Response({"error":"You dont have money for this transaction!!!"},status=400)
                 
-                try:
-                    price = asyncio.run(price_request(symbol_name=name))
-                    result_price = amount/price
+        try:
+            price = asyncio.run(price_request(symbol_name=valute))
+            result_price = amount/price
 
+                    
+            slot.balance += result_price
 
-                    account.balance-=amount
-                    account.save()
+            account.balance-=amount
+            
 
-                    slot.balance += result_price
-                    slot.save()
-
-                    Transaction.objects.create(
-                        account=account,
-                        amount=amount,
-                        type="BUY_ACTION",
-                        description=f"Transactions from {account.id} to buy {amount} {valute}"
-                        )
                     
 
-                    return Response({"balance": account.balance})
-                except:
-                    return Response({"error":"Error"},status=400)
+            Transaction.objects.create(
+                account=account,
+                amount=amount,
+                type="BUY_ACTION",
+                description=f"Transactions from {account.id} to buy {amount} {valute}"
+                )
+                    
+            slot.save()
+            account.save()
+            return Response({"balance": account.balance})
+        except:
+            return Response({"error":"Error"},status=400)
 
 
-            else:
-                return Response({"error":"This slot is inactive"},status=400)
+    else:
+        return Response({"error":"This slot is inactive"},status=400)
 
             
 
 
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def sell_action(request):
+    ser = SellActionSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+
+
+    amount = ser.validated_data["amount"]
+    valute = ser.validated_data["valute"]
+
+
+    account = request.user.account
+    SYMBOLS = {
+    "BTCUSDT": BTCBalance,
+    "ETHUSDT": ETHBalance,
+    "BNBUSDT": BNBBalance
+}
+
+    if valute not in SYMBOLS:
+        return Response({"error": "Unknown currency"}, status=400)
+    
+
+    model = SYMBOLS[valute]
+    slot, _ = model.objects.get_or_create(user=account)
+
+    if slot.balance >= amount:
+        try:
+            price = asyncio.run(price_request(symbol_name=valute))
+                    
+            user_money = amount*price
+
+            account.balance += user_money
+            slot.balance -= amount
+
+
+            Transaction.objects.create(
+                    account=account,
+                    amount=user_money,
+                    type="SELL_ACTION",
+                    description=f"Transactions from {account.id} to sell {amount} {valute}"
+                    )
+                        
+            slot.save()
+            account.save() 
+            return Response({"balance": account.balance})
+        except:
+            return Response({"error":"Error"},status=400)
+                
+
+
+    else:
+        return Response({"error":"You havent this valute in this quantity."},status=400)
 
